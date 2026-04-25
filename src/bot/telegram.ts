@@ -10,8 +10,11 @@ export const bot = new Bot(env.telegramBotToken);
 
 function isAllowedUser(ctx: Context): boolean {
   const userId = ctx.from?.id;
-  if (!userId) return false;
-  return env.telegramAllowedUserIds.includes(userId);
+  if (!userId) {
+    return false;
+  }
+
+  return env.telegramAllowedUserIds.includes(String(userId));
 }
 
 function extractPreferredName(text: string): string | null {
@@ -34,11 +37,17 @@ function extractPreference(text: string): { key: string; value: string } | null 
   const lower = text.toLowerCase();
 
   if (lower.includes("prefiero que me hables")) {
-    return { key: "conversation_style", value: text.replace(/.*prefiero que me hables\s*/i, "").trim() };
+    return {
+      key: "conversation_style",
+      value: text.replace(/.*prefiero que me hables\s*/i, "").trim(),
+    };
   }
 
   if (lower.includes("mi tema favorito es")) {
-    return { key: "favorite_topic", value: text.replace(/.*mi tema favorito es\s*/i, "").trim() };
+    return {
+      key: "favorite_topic",
+      value: text.replace(/.*mi tema favorito es\s*/i, "").trim(),
+    };
   }
 
   return null;
@@ -68,7 +77,12 @@ bot.command("whoami", async (ctx) => {
     return;
   }
 
-  const userId = ctx.from.id;
+  const userId = ctx.from?.id;
+  if (!userId) {
+    await ctx.reply("No pude identificar tu usuario.");
+    return;
+  }
+
   const savedName = getUserFact(userId, "preferred_name");
   const reply = savedName
     ? `Te llamas ${savedName}.`
@@ -83,7 +97,12 @@ bot.command("memory", async (ctx) => {
     return;
   }
 
-  const userId = ctx.from.id;
+  const userId = ctx.from?.id;
+  if (!userId) {
+    await ctx.reply("No pude identificar tu usuario.");
+    return;
+  }
+
   const facts = getAllUserFacts(userId);
 
   if (!facts.length) {
@@ -114,7 +133,12 @@ bot.command("status", async (ctx) => {
     return;
   }
 
-  const userId = ctx.from.id;
+  const userId = ctx.from?.id;
+  if (!userId) {
+    await ctx.reply("No pude identificar tu usuario.");
+    return;
+  }
+
   const facts = getAllUserFacts(userId);
   const skills = listSkills();
 
@@ -177,7 +201,12 @@ bot.on("message:text", async (ctx) => {
       return;
     }
 
-    const userId = ctx.from.id;
+    const userId = ctx.from?.id;
+    if (!userId) {
+      await ctx.reply("No pude identificar tu usuario.");
+      return;
+    }
+
     const text = ctx.message.text.trim();
 
     saveMessage(userId, "user", text);
