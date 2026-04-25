@@ -14,7 +14,6 @@ function isAllowedUser(ctx: Context): boolean {
     return false;
   }
 
-  // userId es number y telegramAllowedUserIds también, así que lo dejamos tal cual
   return env.telegramAllowedUserIds.includes(userId);
 }
 
@@ -215,7 +214,7 @@ bot.on("message:text", async (ctx) => {
     const preferredName = extractPreferredName(text);
     if (preferredName) {
       setUserFact(userId, "preferred_name", preferredName);
-      const reply = `Entendido. Recordare que te llamas ${preferedName}.`;
+      const reply = `Entendido. Recordare que te llamas ${preferredName}.`;
       saveMessage(userId, "assistant", reply);
       await ctx.reply(reply);
       return;
