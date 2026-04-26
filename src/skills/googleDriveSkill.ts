@@ -119,8 +119,9 @@ export function canHandleGoogleDrive(text: string): boolean {
     lower.includes("mi drive") ||
     lower.includes("buscar en drive") ||
     lower.includes("busca en drive") ||
-    lower.includes("lista mis archivos") ||
+    lower.includes("busca en google drive") ||
     lower.includes("listar archivos") ||
+    lower.includes("lista mis archivos") ||
     lower.includes("descarga de drive") ||
     lower.includes("descargar de drive")
   );
@@ -229,4 +230,56 @@ async function downloadFileByName(query: string): Promise<string> {
   const dest = fs.createWriteStream(outputPath);
 
   await new Promise<void>((resolve, reject) => {
-    c
+    const stream = response.data as NodeJS.ReadableStream;
+    stream
+      .pipe(dest)
+      .on("finish", () => resolve())
+      .on("error", (err) => reject(err));
+  });
+
+  return `Descargue "${file.name}" en la ruta local: ${outputPath}`;
+}
+
+export async function handleGoogleDriveRequest(text: string): Promise<string> {
+  try {
+    const fileToDownload = extractFileNameToDownload(text);
+    if (fileToDownload) {
+      return await downloadFileByName(fileToDownload);
+    }
+
+    const searchQuery = extractSearchQuery(text);
+    if (searchQuery) {
+      const files = await searchFilesByName(searchQuery, 10);
+
+      if (!files.length) {
+        return `No encontre archivos en Google Drive que coincidan con "${searchQuery}".`;
+      }
+
+      const lines = files.map(
+        (file, index) => `${index + 1}. ${file.name} | ${file.mimeType} | ${file.id}`,
+      );
+
+      return `Encontre estos archivos en Google Drive para "${searchQuery}":\n${lines.join("\n")}`;
+    }
+
+    const recentFiles = await listRecentFiles(10);
+
+    if (!recentFiles.length) {
+      return "No encontre archivos recientes en Google Drive.";
+    }
+
+    const lines = recentFiles.map(
+      (file, index) => `${index + 1}. ${file.name} | ${file.mimeType} | ${file.id}`,
+    );
+
+    return `Estos son algunos archivos recientes de tu Google Drive:\n${lines.join("\n")}`;
+  } catch (error: any) {
+    console.error("Error en googleDriveSkill:", error);
+
+    if (String(error?.message || "").includes("google-credentials.json")) {
+      return "Aun no esta configurado Google Drive. Falta guardar el archivo data/google-credentials.json con tus credenciales OAuth descargadas desde Google Cloud.";
+    }
+
+    return `Tuve un error al usar Google Drive: ${error?.message || "error desconocido"}`;
+  }
+}
