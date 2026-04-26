@@ -6,6 +6,7 @@ import { generateBestReply } from "../llm/router.js";
 import { getAllUserFacts, getUserFact, setUserFact } from "../memory/userFacts.js";
 import { disableSkill, enableSkill, listSkills } from "../skills/skillManager.js";
 import { canAutoPlan, generateAutoPlanReply } from "../skills/autoPlannerSkill.js";
+import { canHandleGoogleDrive, handleGoogleDriveRequest } from "../skills/googleDriveSkill.js";
 
 export const bot = new Bot(env.telegramBotToken);
 
@@ -243,6 +244,13 @@ bot.on("message:text", async (ctx) => {
     const facts = getAllUserFacts(userId);
     const factsSummary = facts.map((fact) => `${fact.key}: ${fact.value}`).join(" | ");
     const history = getRecentMessages(userId, 12);
+
+    if (canHandleGoogleDrive(text)) {
+      const reply = await handleGoogleDriveRequest(text);
+      saveMessage(userId, "assistant", reply);
+      await ctx.reply(reply);
+      return;
+    }
 
     if (canAutoPlan(text)) {
       const reply = await generateAutoPlanReply({
